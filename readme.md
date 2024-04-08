@@ -22,9 +22,9 @@ The following prerequisites are required to use this application. Please ensure 
 - [Azure Developer CLI](https://aka.ms/azd-install)
 - [.NET SDK 8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
 
-### Quickstart
+## Get started
 
-This quickstart will show you how to authenticate on Azure, initialize using a template, provision infrastructure and deploy code on Azure.
+Follow these steps to authenticate to Azure, initialize thetemplate, provision infrastructure in Azure, and deploy the code to Azure.
 
 1. Log in to azd. Only required once per-install.
 
@@ -60,7 +60,31 @@ This quickstart will show you how to authenticate on Azure, initialize using a t
 
     ![Screenshot of the running web application on Azure Static Web Apps.](media/running-application.png)
 
-### Application Architecture
+## Configuration
+
+In the application's code, open the *src/web/swa-db-connections/staticwebapp.database.config.json* configuration file. This file includes the configuration for the Data API builder client in Azure Static Web Apps:
+
+```json
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/latest/download/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "options": { "set-session-context": false },
+    "connection-string": "@env('SQL_CONNECTION_STRING')"
+  },
+  "runtime": {
+    "host": { "authentication": { "provider": "StaticWebApps" } }
+  },
+  "entities": {
+    "product": {
+      "source": "SalesLT.Product",
+      "permissions": [ { "actions": [ "read" ], "role": "anonymous" } ]
+    }
+  }
+}
+```
+
+## Application Architecture
 
 This application utilizes the following Azure resources:
 
@@ -95,15 +119,15 @@ flowchart TB
     web-app --> azure-func
 ```
 
-### Cost of provisioning and deploying this template
+## Cost of provisioning and deploying this template
 
 This template provisions resources to an Azure subscription that you will select upon provisioning them. Refer to the [Pricing calculator for Microsoft Azure](https://azure.microsoft.com/pricing/calculator/) to estimate the cost you might incur when this template is running on Azure and, if needed, update the included Azure resource definitions found in [`infra/main.bicep`](infra/main.bicep) to suit your needs.
 
-### Application Code
+## Tooling
 
 This template is structured using the [Azure Developer CLI](https://aka.ms/azure-dev/overview). You can learn more about `azd` architecture in [the official documentation](https://learn.microsoft.com/azure/developer/azure-developer-cli/make-azd-compatible?pivots=azd-create#understand-the-azd-architecture).
 
-### Next Steps
+## Next steps
 
 At this point, you have a complete application deployed on Azure. But there is much more that the Azure Developer CLI can do. These next steps will introduce you to additional commands that will make creating applications on Azure much easier. Using the Azure Developer CLI, you can setup your pipelines, monitor your application, test and debug locally.
 
