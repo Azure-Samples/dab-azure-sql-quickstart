@@ -7,9 +7,6 @@ src/web/wwwroot
 # dotenv files
 .env
 
-# Azure Functions localsettings file
-local.settings.json
-
 # User-specific files
 *.rsuser
 *.suo
