@@ -15,11 +15,8 @@ type managedIdentity = {
 @description('Unique identifier for user-assigned managed identity.')
 param userAssignedManagedIdentity managedIdentity
 
-@description('Name of the linked backend function app.')
+@description('Name of the linked backend Azure Functions app.')
 param functionAppName string
-
-@description('Name of the linked database.')
-param databaseName string
 
 module web '../core/host/static-web-app/app.bicep' = {
   name: 'static-web-app'
@@ -45,15 +42,6 @@ module backend '../core/host/static-web-app/backend.bicep' = {
   params: {
     parentSiteName: web.outputs.name
     functionAppName: functionAppName
-  }
-}
-
-module databaseConnection '../core/host/static-web-app/database-connection-mssql.bicep' = {
-  name: 'static-web-app-database-connection'
-  params: {
-    parentSiteName: web.outputs.name
-    databaseName: databaseName
-    identityName: userAssignedManagedIdentity.name
   }
 }
 

@@ -72,7 +72,6 @@ module web 'app/web.bicep' = {
       clientId: identity.outputs.clientId
     }
     functionAppName: api.outputs.name
-    databaseName: database.outputs.databaseName
   }
 }
 
