@@ -1,0 +1,8 @@
+{
+  "staticWebApps": "swa",
+  "appServicePlans": "plan",
+  "storageAccounts": "stor",
+  "functionApps": "func",
+  "sqlServers": "srvr",
+  "userAssignedIdentity": "ua-id"
+}

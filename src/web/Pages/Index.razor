@@ -1,0 +1,51 @@
+﻿@page "/"
+@inject HttpClient Http
+
+<PageTitle>Start</PageTitle>
+
+<div class="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4">
+    <div class="shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+            class="h-16">
+            <title>
+                Pound symbol
+            </title>
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5-3.9 19.5m-2.1-19.5-3.9 19.5" />
+        </svg>
+    </div>
+    <div class="space-y-1">
+        <div class="text-xl font-medium text-black">Number Generator</div>
+        <p class="text-slate-500">
+            <span class="font-light">
+                Current number:&nbsp;
+            </span>
+            <span class="font-semibold">
+                @($"{number:00}")
+            </span>
+        </p>
+        <button @onclick="GetNumber"
+            class="px-4 py-1 text-sm text-white bg-blue-600 font-semibold rounded-md border hover:text-blue-600 hover:bg-white flex flex-row items-center justify-start space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" class="h-6">
+                <title>
+                    Refresh symbol
+                </title>
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            <div>
+                Get a new number
+            </div>
+        </button>
+    </div>
+</div>
+
+@code {
+    private int number = 0;
+
+    private async Task GetNumber()
+    {
+        number = await Http.GetFromJsonAsync<int>("/api/RandomNumber");
+    }
+}

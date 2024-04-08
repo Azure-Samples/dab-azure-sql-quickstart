@@ -1,0 +1,28 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: dab-azure-sql-quickstart
+workflows:
+  up: 
+    steps:
+      - azd: provision
+      - azd: deploy
+services:
+  web:
+    project: ./src/web
+    language: csharp
+    host: staticwebapp
+    dist: build/wwwroot
+    hooks:
+      predeploy:
+        posix:
+          shell: sh
+          run: dotnet publish -c Release --output ./build
+        windows:
+          shell: pwsh
+          run: dotnet publish -c Release --output ./build
+  api:
+    project: ./src/api
+    language: dotnet
+    host: function
+pipeline:
+  provider: github
