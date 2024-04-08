@@ -21,11 +21,15 @@ param adminSid string
 @description('TenantId of the principal to assign administrator access.')
 param adminTenantId string
 
+@description('Enable public network access to the server. Defaults to true.')
+param enablePublicNetworkAccess bool = false
+
 resource server 'Microsoft.Sql/servers@2023-08-01-preview' = {
   name: name
   location: location
   tags: tags
   properties: {
+    publicNetworkAccess: enablePublicNetworkAccess ? 'Enabled' : 'Disabled'
     administrators: {
       administratorType: 'ActiveDirectory'
       azureADOnlyAuthentication: true

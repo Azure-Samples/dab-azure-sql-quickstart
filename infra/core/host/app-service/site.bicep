@@ -84,3 +84,4 @@ output endpoint string = 'https://${site.properties.defaultHostName}'
 output name string = site.name
 output managedIdentityPrincipalId string = enableSystemAssignedManagedIdentity ? site.identity.principalId : ''
 output managedIdentityTenantId string = enableSystemAssignedManagedIdentity ? site.identity.tenantId : ''
+output resourceId string = site.id

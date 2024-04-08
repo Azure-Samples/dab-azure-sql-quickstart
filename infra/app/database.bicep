@@ -21,8 +21,9 @@ module server '../core/database/sql/server.bicep' = {
     name: serverName
     location: location
     tags: tags
+    enablePublicNetworkAccess: true
     adminLogin: databaseAdministrator.name
-    adminType: 'User'
+    adminType: 'Application'
     adminSid: databaseAdministrator.clientId
     adminTenantId: databaseAdministrator.tenantId
   }
