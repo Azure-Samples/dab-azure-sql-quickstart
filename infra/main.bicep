@@ -66,6 +66,12 @@ module web 'app/web.bicep' = {
     location: location
     tags: tags
     serviceTag: webServiceName
+    userAssignedManagedIdentity: {
+      name: identity.outputs.name
+      resourceId: identity.outputs.resourceId
+      clientId: identity.outputs.clientId
+    }
+    functionAppName: api.outputs.name
   }
 }
 
@@ -83,9 +89,6 @@ module api 'app/api.bicep' = {
       resourceId: identity.outputs.resourceId
       clientId: identity.outputs.clientId
     }
-    allowedCorsOrigins: [
-      web.outputs.endpoint
-    ]
   }
 }
 

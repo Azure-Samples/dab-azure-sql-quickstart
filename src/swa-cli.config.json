@@ -5,6 +5,7 @@
       "appLocation": "web",
       "apiLocation": "api",
       "outputLocation": "wwwroot",
+      "dataApiLocation": "web/swa-db-connections",
       "apiLanguage": "dotnetisolated",
       "apiVersion": "8.0",
       "appBuildCommand": "dotnet publish -c Release -o bin",

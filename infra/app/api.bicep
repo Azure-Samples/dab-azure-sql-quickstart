@@ -10,9 +10,6 @@ param tags object = {}
 @description('The name of the storage account to use for the function app.')
 param storageAccountName string
 
-@description('Allowed origins for client-side CORS request on the site.')
-param allowedCorsOrigins string[] = []
-
 type managedIdentity = {
   resourceId: string
   clientId: string
@@ -48,12 +45,12 @@ module func '../core/host/app-service/site.bicep' = {
         'azd-service-name': serviceTag
       }
     )
+    enableSystemAssignedManagedIdentity: false
     userAssignedManagedIdentityIds: [
       userAssignedManagedIdentity.resourceId
     ]
     alwaysOn: true
     parentPlanName: plan.outputs.name
-    allowedCorsOrigins: allowedCorsOrigins
     kind: 'functionapp,linux'
     runtimeName: 'dotnet-isolated'
     runtimeVersion: '8.0'
