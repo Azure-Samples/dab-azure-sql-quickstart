@@ -1,3 +1,25 @@
+---
+page_type: sample
+languages:
+- azstatic-cli
+- azurecli
+- csharp
+- data-api-builder
+- dotnetcli
+products:
+- azure
+- azure-functions
+- azure-storage
+- azure-sql-database
+- entra-id
+- static-web-apps
+urlFragment: template
+name: Quickstart: Data API builder and Azure SQL database
+description: This is a Blazor web application that illustrates using Data API builder with Azure SQL. This sample application uses a Blazor WebAssembly front-end to access an Azure SQL database using the Data API builder, and business logic using Azure Functions. This quickstart makes use of the Database connections feature of Azure Static Web Apps.
+---
+<!-- YAML front-matter schema: https://review.learn.microsoft.com/en-us/help/contribute/samples/process/onboarding?branch=main#supported-metadata-fields-for-readmemd -->
+
+
 # Quickstart: Data API builder and Azure SQL database
 
 This is a Blazor web application that illustrates using Data API builder with Azure SQL. This sample application uses a Blazor WebAssembly front-end to access an Azure SQL database using the [Data API builder](https://learn.microsoft.com/azure/data-api-builder), and business logic using Azure Functions. This quickstart makes use of the [Database connections feature of Azure Static Web Apps](https://learn.microsoft.com/azure/static-web-apps/database-overview).
