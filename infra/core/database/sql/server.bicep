@@ -30,6 +30,7 @@ resource server 'Microsoft.Sql/servers@2023-08-01-preview' = {
   tags: tags
   properties: {
     publicNetworkAccess: enablePublicNetworkAccess ? 'Enabled' : 'Disabled'
+    minimalTlsVersion: '1.2'
     administrators: {
       administratorType: 'ActiveDirectory'
       azureADOnlyAuthentication: true
