@@ -1,0 +1,57 @@
+﻿@page "/"
+@using System.Diagnostics
+@attribute [StreamRendering]
+@inject IProductsService productsService
+
+<PageTitle>
+    Data API builder - Azure SQL Dashboard
+</PageTitle>
+
+<main class="flex flex-row gap-4 justify-start items-stretch h-screen bg-white font-sans">
+    <nav class="hidden md:block lg:basis-2/5 xl:basis-1/5 bg-zinc-100">
+        <Menu />
+    </nav>
+    <article class="lg:basis-3/5 xl:basis-4/5 overflow-y-auto">
+        @if(IsLoading)
+        {
+            <Loading Message="Retrieving GraphQL data..." />
+        }
+        else if (Products.Count > 0)
+        {
+            <Summary ResponseTime="@(RunTime)" AveragePrice="@(Products.Average(p => p.ListPrice))" AverageCost="@(Products.Average(p => p.StandardCost))" />
+            <Table Products="@Products" />
+        }
+        else {
+            <div class="flex justify-center items-center h-full">
+                <span class="prose prose-xl text-gray-500">
+                    No products found
+                </span>
+            </div>
+        }
+    </article>
+</main>
+
+@code {
+    private List<Product> Products { get; } = [];
+    private bool IsLoading { get; set; } = true;
+    private TimeSpan RunTime { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        
+        Products.Clear();
+
+        Stopwatch stopwatch = new();
+        stopwatch.Start();
+
+        IEnumerable<Product> products = await productsService.GetProductsAsync();
+        
+        stopwatch.Stop();
+        RunTime = stopwatch.Elapsed;
+
+        Products.AddRange(products);
+
+        IsLoading = false;
+    }
+}

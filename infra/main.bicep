@@ -1,4 +1,6 @@
-targetScope = 'subscription'
+metadata description = 'Provisions resources for a web application that uses Azure SDK for Go to connect to Azure SQL database.'
+
+targetScope = 'resourceGroup'
 
 @minLength(1)
 @maxLength(64)
@@ -9,106 +11,226 @@ param environmentName string
 @description('Primary location for all resources.')
 param location string
 
-// Optional parameters
-param userAssignedIdentityName string = ''
-param sqlServerName string = ''
-param functionPlanName string = ''
-param functionStorName string = ''
-param functionAppName string = ''
-param staticWebAppName string = ''
+@description('Id of the principal to assign database and application roles.')
+param deploymentUserPrincipalId string = ''
 
-// *ServiceName is used as value for the tag (azd-service-name) azd uses to identify deployment host
-param webServiceName string = 'web'
+// serviceName is used as value for the tag (azd-service-name) azd uses to identify deployment host
 param apiServiceName string = 'api'
+param webServiceName string = 'web'
 
-var abbreviations = loadJsonContent('abbreviations.json')
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
+var resourceToken = toLower(uniqueString(resourceGroup().id, environmentName, location))
 var tags = {
   'azd-env-name': environmentName
   repo: 'https://github.com/azure-samples/dab-azure-sql-quickstart'
 }
 
-// Define resource group
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: environmentName
-  location: location
-  tags: tags
-}
-
-module identity 'app/identity.bicep' = {
-  name: 'identity'
-  scope: resourceGroup
+module managedIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.0' = {
+  name: 'user-assigned-identity'
   params: {
-    identityName: !empty(userAssignedIdentityName)
-      ? userAssignedIdentityName
-      : '${abbreviations.userAssignedIdentity}-${resourceToken}'
+    name: 'managed-identity-${resourceToken}'
     location: location
     tags: tags
   }
 }
 
-module storage 'app/storage.bicep' = {
-  name: 'storage'
-  scope: resourceGroup
+module server 'br/public:avm/res/sql/server:0.12.0' = {
+  name: 'sql-server'
   params: {
-    storName: !empty(functionStorName) ? functionStorName : '${abbreviations.storageAccounts}${resourceToken}'
+    name: 'sql-server-${resourceToken}'
     location: location
     tags: tags
-    managedIdentityClientId: identity.outputs.clientId
+    publicNetworkAccess: 'Enabled'
+    administrators: {
+      azureADOnlyAuthentication: true
+      login: managedIdentity.outputs.name
+      principalType: 'Application'
+      sid: managedIdentity.outputs.clientId
+      tenantId: tenant().tenantId
+    }    
+    firewallRules: [
+      {
+        name: 'AllowAllAzureInternal'
+        startIpAddress: '0.0.0.0'
+        endIpAddress: '0.0.0.0'
+      }
+    ]
+    databases: [
+      {
+        name: 'adventureworkslt'
+        sku: {
+          name: 'Standard'
+          tier: 'Standard'
+        }
+        sampleName: 'AdventureWorksLT'
+        maxSizeBytes: 268435456000
+        zoneRedundant: false
+      }
+    ]
   }
 }
 
-module web 'app/web.bicep' = {
-  name: 'web'
-  scope: resourceGroup
+module containerRegistry 'br/public:avm/res/container-registry/registry:0.7.0' = {
+  name: 'container-registry'
   params: {
-    appName: !empty(staticWebAppName) ? staticWebAppName : '${abbreviations.staticWebApps}-${resourceToken}'
+    name: 'containerreg${resourceToken}'
     location: location
     tags: tags
-    serviceTag: webServiceName
-    userAssignedManagedIdentity: {
-      name: identity.outputs.name
-      resourceId: identity.outputs.resourceId
-      clientId: identity.outputs.clientId
+    acrAdminUserEnabled: false
+    anonymousPullEnabled: true
+    publicNetworkAccess: 'Enabled'
+    acrSku: 'Standard'
+  }
+}
+
+var containerRegistryRole = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '8311e382-0749-4cb8-b61a-304f252e45ec'
+) // AcrPush built-in role
+
+module registryUserAssignment 'br/public:avm/ptn/authorization/resource-role-assignment:0.1.1' = if (!empty(deploymentUserPrincipalId)) {
+  name: 'container-registry-role-assignment-push-user'
+  params: {
+    principalId: deploymentUserPrincipalId
+    resourceId: containerRegistry.outputs.resourceId
+    roleDefinitionId: containerRegistryRole
+  }
+}
+
+module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.7.0' = {
+  name: 'log-analytics-workspace'
+  params: {
+    name: 'log-analytics-${resourceToken}'
+    location: location
+    tags: tags
+  }
+}
+
+module containerAppsEnvironment 'br/public:avm/res/app/managed-environment:0.8.0' = {
+  name: 'container-apps-env'
+  params: {
+    name: 'container-env-${resourceToken}'
+    location: location
+    tags: tags
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspace.outputs.resourceId
+    zoneRedundant: false
+  }
+}
+
+module containerAppsApiApp 'br/public:avm/res/app/container-app:0.12.0' = {
+  name: 'container-apps-app-api'
+  params: {
+    name: 'container-app-api-${resourceToken}'
+    environmentResourceId: containerAppsEnvironment.outputs.resourceId
+    location: location
+    tags: union(tags, { 'azd-service-name': apiServiceName })
+    ingressTargetPort: 5000
+    ingressExternal: true
+    ingressTransport: 'auto'
+    stickySessionsAffinity: 'sticky'
+    scaleMaxReplicas: 1
+    scaleMinReplicas: 1
+    corsPolicy: {
+      allowCredentials: true
+      allowedOrigins: [
+        '*'
+      ]
     }
-    functionAppName: api.outputs.name
-  }
-}
-
-module api 'app/api.bicep' = {
-  name: 'api'
-  scope: resourceGroup
-  params: {
-    planName: !empty(functionPlanName) ? functionPlanName : '${abbreviations.appServicePlans}-${resourceToken}'
-    funcName: !empty(functionAppName) ? functionAppName : '${abbreviations.functionApps}-${resourceToken}'
-    location: location
-    tags: tags
-    serviceTag: apiServiceName
-    storageAccountName: storage.outputs.name
-    userAssignedManagedIdentity: {
-      resourceId: identity.outputs.resourceId
-      clientId: identity.outputs.clientId
+    managedIdentities: {
+      systemAssigned: false
+      userAssignedResourceIds: [
+        managedIdentity.outputs.resourceId
+      ]
     }
-  }
-}
-
-module database 'app/database.bicep' = {
-  name: 'database'
-  scope: resourceGroup
-  params: {
-    serverName: !empty(sqlServerName) ? sqlServerName : '${abbreviations.sqlServers}-${resourceToken}'
-    databaseName: 'adventureworkslt'
-    location: location
-    tags: tags
-    databaseAdministrator: {
-      name: identity.outputs.name
-      clientId: identity.outputs.clientId
-      tenantId: identity.outputs.tenantId
+    secrets: {
+      secureList: [
+        {
+          name: 'azure-sql-connection-string'
+          value: 'Server=tcp:${server.outputs.fullyQualifiedDomainName},1433;Initial Catalog=AdventureWorksLT;Authentication=Active Directory Default;'
+        }
+        {
+          name: 'user-assigned-managed-identity-client-id'
+          value: managedIdentity.outputs.clientId
+        }
+      ]
     }
+    containers: [
+      {
+        image: 'mcr.microsoft.com/azure-databases/data-api-builder:latest'
+        name: 'api-back-end'
+        resources: {
+          cpu: '0.25'
+          memory: '.5Gi'
+        }
+        env: [
+          {
+            name: 'AZURE_SQL_CONNECTION_STRING'
+            secretRef: 'azure-sql-connection-string'
+          }
+          {
+            name: 'AZURE_CLIENT_ID'
+            secretRef: 'user-assigned-managed-identity-client-id'
+          }
+        ]
+      }
+    ]
   }
 }
 
-// Application outputs
-output AZURE_STATIC_WEB_APP_ENDPOINT string = web.outputs.endpoint
-output AZURE_FUNCTION_API_ENDPOINT string = api.outputs.endpoint
-output AZURE_SQL_SERVER_ENDPOINT string = database.outputs.serverEndpoint
+module containerAppsWebApp 'br/public:avm/res/app/container-app:0.12.0' = {
+  name: 'container-apps-app-web'
+  params: {
+    name: 'container-app-web-${resourceToken}'
+    environmentResourceId: containerAppsEnvironment.outputs.resourceId
+    location: location
+    tags: union(tags, { 'azd-service-name': webServiceName })
+    ingressTargetPort: 8080
+    ingressExternal: true
+    ingressTransport: 'auto'
+    stickySessionsAffinity: 'sticky'
+    scaleMaxReplicas: 1
+    scaleMinReplicas: 1
+    corsPolicy: {
+      allowCredentials: true
+      allowedOrigins: [
+        '*'
+      ]
+    }
+    managedIdentities: {
+      systemAssigned: false
+      userAssignedResourceIds: [
+        managedIdentity.outputs.resourceId
+      ]
+    }
+    secrets: {
+      secureList: [
+        {
+          name: 'data-api-builder-endpoint'
+          value: 'http://${containerAppsApiApp.outputs.fqdn}/graphql'
+        }
+      ]
+    }
+    containers: [
+      {
+        image: 'mcr.microsoft.com/azure-databases/data-api-builder:latest'
+        name: 'web-front-end'
+        resources: {
+          cpu: '0.25'
+          memory: '.5Gi'
+        }
+        env: [
+          {
+            name: 'CONFIGURATION__DATAAPIBUILDER__BASEAPIURL'
+            secretRef: 'data-api-builder-endpoint'
+          }
+        ]
+      }
+    ]
+  }
+}
+
+// Azure Container Apps outputs
+output AZURE_CONTAINER_APPS_API_ENDPOINT string = containerAppsApiApp.outputs.fqdn
+output AZURE_CONTAINER_APPS_WEB_ENDPOINT string = containerAppsWebApp.outputs.fqdn
+
+// Azure Container Registry outputs
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer

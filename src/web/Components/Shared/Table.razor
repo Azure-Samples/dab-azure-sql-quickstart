@@ -1,0 +1,37 @@
+<div class="flex justify-end items-center mx-2">
+    <span class="prose prose-sm italic text-gray-500 text-right">
+        Returned @(Products.Count) items
+    </span>
+</div>
+<table class="min-w-full shadow-md rounded-lg">
+    <thead class="bg-gray-100 prose prose-stone prose-lg">
+        <tr>
+            <th class="w-1/12 px-2 py-2 text-left">#</th>
+            <th class="w-2/12 px-2 py-2 text-left">Id</th>
+            <th class="w-2/12 px-4 py-2 text-left">Name</th>
+            <th class="w-3/12 px-4 py-2 text-left">Color</th>
+            <th class="w-2/12 px-4 py-2 text-left">SKU</th>
+            <th class="w-1/12 px-4 py-2 text-right">Price</th>
+            <th class="w-1/12 px-4 py-2 text-right">Cost</th>
+        </tr>
+    </thead>
+    <tbody class="text-gray-700 prose prose-sm">
+        @foreach (var product in Products)
+        {
+            <tr class="border-b">
+                <td class="pl-2 pr-2 py-2 text-left">@(Products.IndexOf(product) + 1)</td>
+                <td class="pl-2 pr-2 py-2 text-left">@($"{product.ProductId:0000}")</td>
+                <td class="px-4 py-2 text-left">@product.Name</td>
+                <td class="px-4 py-2 text-left">@product.Color</td>
+                <td class="px-4 py-2 text-left">@product.ProductNumber</td>
+                <td class="px-4 py-2 text-right">@($"{product.ListPrice:C}")</td>
+                <td class="px-4 py-2 text-right">@($"{product.StandardCost:C}")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter]
+    public required List<Product> Products { get; init; }
+}
